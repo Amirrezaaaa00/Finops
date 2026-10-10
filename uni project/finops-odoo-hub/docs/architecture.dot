@@ -1,0 +1,18 @@
+digraph G {
+  graph [rankdir=LR, bgcolor="white", pad="0.3", nodesep="0.55", ranksep="0.75"];
+  node [shape=box, style="rounded,filled", fontname="DejaVu Sans", fontsize=11, color="#cfd8e6", fillcolor="#f7f9fc", fontcolor="#172033", margin="0.18,0.12"];
+  edge [color="#708199", penwidth=1.6, arrowsize=0.8, fontname="DejaVu Sans", fontsize=9, fontcolor="#526174"];
+
+  cloud [label="Cloud Billing / Kubernetes\n(real or demo source)", fillcolor="#eef6ff"];
+  opencost [label="OpenCost\nOpen-source cost engine", fillcolor="#e9fbf5", color="#7bd4b8"];
+  gateway [label="FinOps Gateway\nFastAPI + normalized model\nBudget / Forecast / Recommendations", fillcolor="#fff8e8", color="#e5bd64"];
+  dash [label="Web Dashboard\nUniversity demo", fillcolor="#f4efff", color="#a98adb"];
+  odoo [label="Odoo Community\nfinops_connector add-on\nList / Pivot / Graph", fillcolor="#eef3ff", color="#8198df"];
+  db [label="Odoo PostgreSQL\nCost records", shape=cylinder, fillcolor="#f6f6f6"];
+
+  cloud -> opencost [label="usage + billing"];
+  opencost -> gateway [label="REST /cloudCost"];
+  gateway -> dash [label="REST + HTML"];
+  gateway -> odoo [label="normalized JSON"];
+  odoo -> db [label="ORM"];
+}

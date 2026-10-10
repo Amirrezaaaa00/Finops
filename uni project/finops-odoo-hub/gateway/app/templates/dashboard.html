@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>FinOps Odoo Hub</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  {# Default collections keep an empty database safe to render. #}
+  {% set project_rows = by_project|default([], true) %}
+  {% set service_rows = by_service|default([], true) %}
+  {% set daily_rows = trend|default([], true) %}
+  {% set recommendation_rows = recommendations|default([], true) %}
+  {% set period_days = days|default(30, true) %}
+  {% set cost_total = summary.total_cost|default(0, true)|float %}
+  {% set forecast_total = summary.forecast_30d|default(0, true)|float %}
+  {% set budget_total = summary.budget_total|default(0, true)|float %}
+  {% set budget_pct = summary.budget_utilization_pct|default(0, true)|float %}
+  {% set savings_total = summary.estimated_savings|default(0, true)|float %}
+  {% set project_values = project_rows|map(attribute=1)|list %}
+  {% set project_max = project_values|max if project_values else 0 %}
+  {% set service_total = service_rows|sum(attribute=1) %}
+  {% set daily_values = daily_rows|map(attribute=1)|list %}
+  {% set daily_max = daily_values|max if daily_values else 0 %}
+
+  <div class="shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <span class="mark">F</span>
+        <div><b>FinOps Hub</b><small>OpenCost → Odoo</small></div>
+      </div>
+      <nav>
+        <a class="active" href="/">نمای کلی</a>
+        <a href="#projects">هزینه پروژه‌ها</a>
+        <a href="#recommendations">پیشنهادهای بهینه‌سازی</a>
+        <a href="/docs">REST API</a>
+      </nav>
+      <div class="side-note">
+        نسخه دانشگاهی 0.1<br>
+        وضعیت Provider از API سلامت خوانده می‌شود.<br>
+        داده‌های این صفحه مربوط به پایگاه داده Gateway هستند.
+      </div>
+    </aside>
+
+    <main>
+      <header>
+        <div>
+          <p class="eyebrow">سامانه متن‌باز مدیریت هزینه زیرساخت</p>
+          <h1>داشبورد FinOps</h1>
+          <p class="muted">نمایش هزینه، بودجه و روند مصرف در {{ period_days }} روز اخیر</p>
+        </div>
+        <div class="status"><span></span><b id="provider-label">در حال بررسی Provider...</b></div>
+      </header>
+
+      <section class="cards">
+        <article>
+          <p>هزینه کل</p>
+          <strong>${{ '%.6f'|format(cost_total) if cost_total < 0.01 else '%.2f'|format(cost_total) }}</strong>
+          <small>{{ period_days }} روز اخیر</small>
+        </article>
+        <article>
+          <p>پیش‌بینی ۳۰ روزه</p>
+          <strong>${{ '%.6f'|format(forecast_total) if forecast_total < 0.01 else '%.2f'|format(forecast_total) }}</strong>
+          <small>بر اساس میانگین روزانه</small>
+        </article>
+        <article>
+          <p>بودجه کل</p>
+          <strong>${{ '%.2f'|format(budget_total) }}</strong>
+          <small>{{ '%.1f'|format(budget_pct) }}٪ مصرف پیش‌بینی‌شده</small>
+        </article>
+        <article>
+          <p>صرفه‌جویی شناسایی‌شده</p>
+          <strong>${{ '%.2f'|format(savings_total) }}</strong>
+          <small>برآورد ماهانه در صورت وجود پیشنهاد</small>
+        </article>
+      </section>
+
+      <section class="grid2">
+        <article class="panel" id="projects">
+          <div class="panel-head"><div><h2>هزینه بر اساس پروژه</h2><p>Cost Allocation</p></div></div>
+          <div class="bars">
+            {% for name, value in project_rows %}
+              {% set percent = (value / project_max * 100) if project_max > 0 else 0 %}
+              <div class="bar-row">
+                <div class="bar-label"><span>{{ name }}</span><b>${{ '%.6f'|format(value) }}</b></div>
+                <div class="track"><div class="fill" data-width-percent="{{ percent|round(2) }}"></div></div>
+              </div>
+            {% else %}
+              <p class="muted">هنوز داده‌ای برای هزینه پروژه‌ها ثبت نشده است.</p>
+            {% endfor %}
+          </div>
+        </article>
+
+        <article class="panel">
+          <div class="panel-head"><div><h2>ترکیب هزینه سرویس‌ها</h2><p>Service Breakdown</p></div></div>
+          <div class="service-list">
+            {% for name, value in service_rows %}
+              {% set percent = (value / service_total * 100) if service_total > 0 else 0 %}
+              <div>
+                <span class="dot d{{ loop.index }}"></span>
+                <span>{{ name }}</span>
+                <b>{{ '%.1f'|format(percent) }}٪</b>
+                <em>${{ '%.6f'|format(value) }}</em>
+              </div>
+            {% else %}
+              <p class="muted">اطلاعات هزینه سرویس‌ها موجود نیست.</p>
+            {% endfor %}
+          </div>
+        </article>
+      </section>
+
+      <section class="panel trend">
+        <div class="panel-head"><div><h2>روند روزانه هزینه</h2><p>Daily spend trend</p></div></div>
+        <div class="spark">
+          {% for day, value in daily_rows %}
+            {% set percent = (value / daily_max * 100) if daily_max > 0 else 0 %}
+            <i data-height-percent="{{ percent|round(2) }}" title="{{ day }}: ${{ '%.6f'|format(value) }}"></i>
+          {% else %}
+            <p class="muted">داده‌ای برای نمودار روند روزانه موجود نیست.</p>
+          {% endfor %}
+        </div>
+      </section>
+
+      <section class="panel" id="recommendations">
+        <div class="panel-head">
+          <div><h2>فرصت‌های بهینه‌سازی</h2><p>Optimize</p></div>
+          <span class="pill">{{ recommendation_rows|length }} مورد</span>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>پروژه</th><th>نوع</th><th>منبع</th><th>اولویت</th><th>صرفه‌جویی ماهانه</th></tr>
+            </thead>
+            <tbody>
+              {% for item in recommendation_rows %}
+                <tr>
+                  <td>{{ item.project }}</td>
+                  <td>{{ item.recommendation_type }}</td>
+                  <td class="ltr">{{ item.resource }}</td>
+                  <td><span class="sev {{ item.severity }}">{{ item.severity }}</span></td>
+                  <td><b>${{ '%.2f'|format(item.estimated_monthly_saving|default(0, true)) }}</b></td>
+                </tr>
+              {% else %}
+                <tr><td colspan="5">هنوز پیشنهادی برای بهینه‌سازی ثبت نشده است.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <footer>FinOps Odoo Hub • Open-source academic prototype</footer>
+    </main>
+  </div>
+
+  <script>
+    // Dynamic bar sizes are applied outside CSS attributes so VS Code's
+    // CSS parser does not mistake Jinja expressions for invalid CSS.
+    function safePercent(raw) {
+      const n = Number(raw);
+      return Number.isFinite(n) ? Math.max(0, Math.min(100, n)) : 0;
+    }
+    document.querySelectorAll('[data-width-percent]').forEach((element) => {
+      element.style.width = safePercent(element.dataset.widthPercent) + '%';
+    });
+    document.querySelectorAll('[data-height-percent]').forEach((element) => {
+      element.style.height = safePercent(element.dataset.heightPercent) + '%';
+    });
+
+    // Display configuration mode, not an unverified data-sync claim.
+    fetch('/health', {cache: 'no-store'})
+      .then((response) => {
+        if (!response.ok) throw new Error('Health API unavailable');
+        return response.json();
+      })
+      .then((data) => {
+        const label = document.getElementById('provider-label');
+        if (data.provider_mode === 'opencost') {
+          label.textContent = 'حالت اتصال: OpenCost';
+        } else if (data.provider_mode === 'mock') {
+          label.textContent = 'حالت اتصال: Mock';
+        } else {
+          label.textContent = 'Provider: ' + String(data.provider_mode || 'نامشخص');
+        }
+      })
+      .catch(() => {
+        document.getElementById('provider-label').textContent = 'وضعیت اتصال نامشخص';
+      });
+  </script>
+</body>
+</html>

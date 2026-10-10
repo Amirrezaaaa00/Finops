@@ -1,0 +1,49 @@
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: postgres
+      POSTGRES_USER: odoo
+      POSTGRES_PASSWORD: odoo
+    volumes:
+      - odoo-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U odoo"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  finops-gateway:
+    build: ./gateway
+    environment:
+      FINOPS_PROVIDER_MODE: ${FINOPS_PROVIDER_MODE:-mock}
+      FINOPS_OPENCOST_BASE_URL: ${FINOPS_OPENCOST_BASE_URL:-http://opencost:9003}
+      FINOPS_OPENCOST_WINDOW: ${FINOPS_OPENCOST_WINDOW:-30d}
+    volumes:
+      - gateway-data:/app/data
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+
+  odoo:
+    image: odoo:19.0
+    depends_on:
+      postgres:
+        condition: service_healthy
+      finops-gateway:
+        condition: service_started
+    environment:
+      HOST: postgres
+      USER: odoo
+      PASSWORD: odoo
+    ports:
+      - "8069:8069"
+    volumes:
+      - odoo-web:/var/lib/odoo
+      - ./odoo_addons:/mnt/extra-addons
+    restart: unless-stopped
+
+volumes:
+  odoo-db:
+  odoo-web:
+  gateway-data:

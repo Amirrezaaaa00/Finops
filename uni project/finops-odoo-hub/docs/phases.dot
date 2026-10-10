@@ -1,0 +1,10 @@
+digraph P {
+  graph [rankdir=LR, bgcolor="white", pad="0.3", nodesep="0.45"];
+  node [shape=box, style="rounded,filled", fontname="DejaVu Sans", fontsize=10, color="#cfd8e6", fillcolor="#f8fafc", margin="0.18,0.12"];
+  edge [color="#68ad98", penwidth=2, arrowsize=0.8];
+  a [label="1. Inform\nCollect + allocate costs", fillcolor="#eaf9f4"];
+  b [label="2. Optimize\nFind waste + savings", fillcolor="#fff7e5"];
+  c [label="3. Operate\nSync, budget, governance", fillcolor="#eef2ff"];
+  d [label="Odoo Integration\nBusiness context + reporting", fillcolor="#f5efff"];
+  a -> b -> c -> d;
+}
